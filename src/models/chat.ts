@@ -2,11 +2,10 @@ import io from 'socket.io-client';
 import { Model, StreamSource, ActionLike, Observable, ModelInterface } from 'gasoline';
 import { SOCKET_URL } from '../config';
 
-export const enum Status {
+export enum Status {
     // Offline
     Disconnected = "Disconnected",
     NicknameAlreadyTaken = "NicknameAlreadyTaken",
-    TimedOut = "TimedOut",
     ConnectionError = "ConnectionError",
     ServerClosedConnection = "ServerClosedConnection",
     // Online
@@ -45,7 +44,6 @@ export interface OfflineState {
     status:
         | Status.Disconnected
         | Status.NicknameAlreadyTaken
-        | Status.TimedOut
         | Status.ConnectionError
         | Status.ServerClosedConnection
 }
@@ -93,12 +91,6 @@ export const chatModel = new Model({
             return {
                 ...state,
                 status: Status.NicknameAlreadyTaken
-            }
-        },
-        timedOut(state: ConnectingState) {
-            return {
-                ...state,
-                status: Status.TimedOut
             }
         },
         connectError(state: OnlineState | ConnectingState) {
@@ -153,7 +145,7 @@ export const chatModel = new Model({
                         break;
 
                     case model.actionTypes.nickOk:
-                        output.next(model.actionTypes.addLine({
+                        output.next(model.actionCreators.addLine({
                             type: "join",
                             time: new Date().valueOf(),
                             user: model.state.nick
@@ -161,7 +153,7 @@ export const chatModel = new Model({
                         break;
 
                     case model.actionTypes.message:
-                        output.next(model.actionTypes.addLine({
+                        output.next(model.actionCreators.addLine({
                             type: "message",
                             time: new Date().valueOf(),
                             from: model.state.nick,
@@ -186,19 +178,20 @@ export const chatModel = new Model({
             socket.emit('setNick', model.state.nick);
         });
 
-        socket.on('connect_timeout', () => {
-            output.next(model.actionCreators.timedOut());
-        });
-
         socket.on('connect_error', () => {
             output.next(model.actionCreators.connectError());
         });
+
+        socket.on('error', () => {
+            output.next(model.actionCreators.connectError());
+        })
 
         socket.on('nickTaken', () => {
             output.next(model.actionCreators.nickTaken());
         });
 
         socket.on('nickOk', () => {
+            console.log('nick ok');
             output.next(model.actionCreators.nickOk());
         });
 
@@ -207,6 +200,7 @@ export const chatModel = new Model({
         });
 
         socket.on('disconnect', (reason: 'io server disconnect' | 'io client disconnect') => {
+            console.log(reason);
             if (reason === 'io server disconnect') {
                 output.next(model.actionCreators.serverClosedConnection())
             }
