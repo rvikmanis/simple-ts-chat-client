@@ -9,7 +9,7 @@ export default createContainer(() => {
         return <App
             {...state}
             connect={chatModel.actions.connect}
-            message={chatModel.actions.connect}
+            message={chatModel.actions.message}
             disconnect={chatModel.actions.disconnect}
         />
     });

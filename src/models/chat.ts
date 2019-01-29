@@ -121,7 +121,7 @@ export const chatModel = new Model({
             }
         },
         message(state: State, text: string) {
-            return state;
+            return { ...state };
         }
     },
 
@@ -191,7 +191,6 @@ export const chatModel = new Model({
         });
 
         socket.on('nickOk', () => {
-            console.log('nick ok');
             output.next(model.actionCreators.nickOk());
         });
 
@@ -199,10 +198,15 @@ export const chatModel = new Model({
             output.next(model.actionCreators.addLine(line));
         });
 
+        socket.on('serverShutdown', () => {
+            output.next(model.actionCreators.connectError());
+        });
+
         socket.on('disconnect', (reason: 'io server disconnect' | 'io client disconnect') => {
-            console.log(reason);
             if (reason === 'io server disconnect') {
-                output.next(model.actionCreators.serverClosedConnection())
+                if (model.state.status === Status.Connected) {
+                    output.next(model.actionCreators.serverClosedConnection());
+                }
             }
         });
 

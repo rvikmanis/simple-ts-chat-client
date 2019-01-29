@@ -1,0 +1,12 @@
+.ChatPage {
+}
+
+.ChatPage-Lines {
+    margin-bottom: 40px;
+}
+
+.ChatPage-Controls {
+    position: fixed;
+    width: 99.7%;
+    bottom: 0;
+}
