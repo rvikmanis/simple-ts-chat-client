@@ -121,7 +121,7 @@ export const chatModel = new Model({
             }
         },
         message(state: State, text: string) {
-            return { ...state };
+            return state;
         }
     },
 
@@ -132,47 +132,36 @@ export const chatModel = new Model({
         });
 
         const output = new StreamSource<ActionLike>();
-        const inputObserver = {
-            next(action: ActionLike) {
-                switch (action.type) {
-                    case model.actionTypes.connect:
-                        socket.open();
-                        break;
-            
-                    case model.actionTypes.nickTaken:
-                    case model.actionTypes.disconnect:
-                        socket.close();
-                        break;
+        input$.subscribe((action: ActionLike) => {
+            switch (action.type) {
+                case model.actionTypes.connect:
+                    socket.open();
+                    break;
+        
+                case model.actionTypes.nickTaken:
+                case model.actionTypes.disconnect:
+                    socket.close();
+                    break;
 
-                    case model.actionTypes.nickOk:
-                        output.next(model.actionCreators.addLine({
-                            type: "join",
-                            time: new Date().valueOf(),
-                            user: model.state.nick
-                        }));
-                        break;
+                case model.actionTypes.nickOk:
+                    output.next(model.actionCreators.addLine({
+                        type: "join",
+                        time: new Date().valueOf(),
+                        user: model.state.nick
+                    }));
+                    break;
 
-                    case model.actionTypes.message:
-                        output.next(model.actionCreators.addLine({
-                            type: "message",
-                            time: new Date().valueOf(),
-                            from: model.state.nick,
-                            text: action.payload
-                        }));
-                        socket.emit('message', action.payload);
-                        break;
-                }
-            },
-            error(e: any) {
-                subscription.unsubscribe();
-                output.error(e);
-            },
-            complete() {
-                subscription.unsubscribe();
-                output.complete();
+                case model.actionTypes.message:
+                    output.next(model.actionCreators.addLine({
+                        type: "message",
+                        time: new Date().valueOf(),
+                        from: model.state.nick,
+                        text: action.payload
+                    }));
+                    socket.emit('message', action.payload);
+                    break;
             }
-        }
-        const subscription = input$.subscribe(inputObserver);
+        });
 
         socket.on('connect', () => {
             socket.emit('setNick', model.state.nick);
